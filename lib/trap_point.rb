@@ -1,7 +1,8 @@
 require 'pry'
 require 'colorize'
+require 'active_record'
 
-def watch_class_with(klass)
+def watch_class_or_module_with(klass)
   trace = TracePoint.new(:class) do |tp|
     if tp.self == klass
       yield tp
@@ -11,14 +12,16 @@ def watch_class_with(klass)
   trace.enable
 end
 
-def warn_class(klass)
-  watch_class_with(klass) do
-    puts "Someone opened #{klass}"
+def warn_class(klass, watch_method)
+  watch_class_or_module_with(klass) do |tp|
+    if klass.instance_methods.include?(watch_method.to_sym)
+      p "#{klass} was opened on line: #{tp.lineno} by:\n#{pretty_caller(caller)}"
+    end
   end
 end
 
 def protect_class(klass)
-  watch_class_with(klass) do |tp|
+  watch_class_or_module_with(klass) do |tp|
     raise "#{klass} was opened on line: #{tp.lineno} by:\n#{pretty_caller(caller)}"
   end
 end
